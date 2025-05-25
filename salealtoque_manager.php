@@ -30,13 +30,11 @@ function sat_manager_activate() {
     // Nueva tabla para usuarios activos en tiempo real
     $tabla_active_users = $wpdb->prefix . 'sat_active_users';
     $sql_active_users = "CREATE TABLE IF NOT EXISTS $tabla_active_users (
-        id bigint(20) NOT NULL AUTO_INCREMENT,
         user_id bigint(20) DEFAULT 0 NOT NULL,
-        session_id varchar(64) NOT NULL, // Aumentado por si el md5 es más largo que 32
+        session_id varchar(64) NOT NULL,
         last_activity datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        PRIMARY_KEY_COL VARCHAR(128) NOT NULL, // Aumentado por si user_id es largo
-        PRIMARY KEY  (id),
-        UNIQUE KEY primary_key_col (PRIMARY_KEY_COL),
+        PRIMARY_KEY_COL varchar(128) NOT NULL,
+        PRIMARY KEY (PRIMARY_KEY_COL),
         KEY user_id (user_id),
         KEY session_id (session_id),
         KEY last_activity (last_activity)
@@ -449,7 +447,10 @@ function sat_manager_panel() {
 
     // Cambiada función flecha por función anónima para compatibilidad PHP < 7.4
     usort($ranking, function($a, $b) {
-        return $b['total'] <=> $a['total'];
+        if ($a['total'] == $b['total']) {
+            return 0;
+        }
+        return ($a['total'] < $b['total']) ? 1 : -1; // For descending order
     });
 
     if ($ranking && array_sum(array_column($ranking, 'total')) > 0) {
