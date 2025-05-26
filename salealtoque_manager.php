@@ -220,6 +220,25 @@ function sat_manager_admin_scripts($hook) {
         .sat-chart-box{flex:1;min-width:300px;max-width:400px;background:#fff;border:1px solid #ddd;border-radius:8px;padding:15px;text-align:center;}
         .sat-chart-box h4{margin:0 0 10px 0;font-size:14px;color:#333;}
         .sat-chart-canvas{width:100% !important;height:200px !important;}
+        .sat-store-details {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #fff; /* Added a white background */
+        }
+        .sat-store-summary {
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 0; /* Added some padding */
+        }
+        .sat-store-summary:hover {
+            color: #0073aa; /* WordPress blue on hover for interactivity */
+        }
+        .sat-store-details .sat-store-content { /* Content wrapper div */
+            margin-top: 15px;
+        }
     ");
 }
 
@@ -497,9 +516,11 @@ function sat_manager_panel() {
                 $autor = get_userdata($autor_id);
                 $productos_por_autor[$autor_id]['nombre'] = $autor ? $autor->display_name : 'Desconocida';
                 $productos_por_autor[$autor_id]['productos'] = [];
+                $productos_por_autor[$autor_id]['total_visitas_tienda'] = 0; // Initialize here
             }
 
             $stats = isset($all_product_stats[$producto->ID]) ? $all_product_stats[$producto->ID] : (object)['visitas' => 0, 'whatsapps' => 0, 'llamadas' => 0];
+            $productos_por_autor[$autor_id]['total_visitas_tienda'] += intval($stats->visitas);
 
             $productos_por_autor[$autor_id]['productos'][] = [
                 'titulo' => esc_html($producto->post_title),
@@ -509,12 +530,27 @@ function sat_manager_panel() {
             ];
         }
 
+        // Sort stores by total visits in descending order
+        uasort($productos_por_autor, function($a, $b) {
+            if ($a['total_visitas_tienda'] == $b['total_visitas_tienda']) {
+                return 0;
+            }
+            return ($a['total_visitas_tienda'] < $b['total_visitas_tienda']) ? 1 : -1;
+        });
+
         foreach ($productos_por_autor as $autor_data) {
-            echo '<div style="margin-bottom: 30px;">';
-            echo '<h3>🏪 Tienda: ' . esc_html($autor_data['nombre']) . '</h3>';
+            echo '<details class="sat-store-details">';
+            echo '<summary class="sat-store-summary">';
+            echo '🏪 Tienda: ' . esc_html($autor_data['nombre']);
+            echo ' (Total Visitas: ' . esc_html($autor_data['total_visitas_tienda']) . ')';
+            echo '</summary>';
+
+            // This div will now be inside the <details> tag
+            echo '<div class="sat-store-content">';
             if (!empty($autor_data['productos'])) {
                 echo '<div style="display:flex; flex-wrap:wrap; gap:20px;">';
                 foreach ($autor_data['productos'] as $prod_data) {
+                    // Product card HTML (this part remains the same)
                     echo "<div style='border:1px solid #ccc;padding:15px;border-radius:10px;background:#fff;flex:1 1 calc(33.33% - 20px); max-width: calc(33.33% - 20px); box-sizing: border-box;'>";
                     echo "<strong>📦 Producto:</strong> " . $prod_data['titulo'] . "<br>";
                     echo "<strong>👁️ Visitas:</strong> " . $prod_data['visitas'] . "<br>";
@@ -525,7 +561,8 @@ function sat_manager_panel() {
             } else {
                 echo '<p style="color:#777;">No tiene productos publicados.</p>';
             }
-            echo '</div>';
+            echo '</div>'; // Closing the div that wraps content inside details
+            echo '</details>';
         }
 
     } else {
